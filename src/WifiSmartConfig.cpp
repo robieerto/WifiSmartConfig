@@ -25,6 +25,14 @@ void writeCredentials(credentials_t credentials) {
   EEPROM.end();
 }
 
+void clearEEPROM() {
+  EEPROM.begin(512);
+  for (int i = 0; i < 512; i++) {
+    EEPROM.write(i, 0);
+  }
+  EEPROM.end();
+}
+
 // Connect to one of the saved Wifi SSID's
 void startWifi(WiFiMode_t wifiMode) {
   // Setup Wifi, WIFI_STA - only station,
@@ -53,12 +61,12 @@ void startSoftAP() {
   WiFi.softAPConfig(apLocalIp, apLocalIp, apSubnetMask);
   credentials_t credentials = readCredentials();
   if (! WiFi.softAP(credentials.name, credentials.pass)) {
-    Serial.print(WiFi.softAP(AP_SSID, AP_PASS)
+    Serial.print(WiFi.softAP(AP_SSID, "")
       ? "Ready" : "Failed!");
-    Serial.println(" as " + String(AP_SSID) + " with pass " + AP_PASS);
+    Serial.println(" as " + String(AP_SSID));
   }
   else {
-    Serial.println("Ready as " + String(credentials.name) + " with pass " + credentials.pass);
+    Serial.println("Ready as " + String(credentials.name));
   }
 }
 
@@ -149,6 +157,8 @@ void handleSave() {
   strcpy(credentials.pass, server.arg("password").c_str());
   writeCredentials(credentials);
   handleFileRead("/success.html");
+  delay(3000);
+  ESP.restart();
 }
 
 // Convert the file extension to the MIME type

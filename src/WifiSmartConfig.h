@@ -6,7 +6,6 @@
 #ifndef WIFI_SMART_CONFIG_H
 #define WIFI_SMART_CONFIG_H
 
-#include <WiFiClient.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h> 
 #include <ESP8266WebServer.h>
@@ -16,7 +15,6 @@
 #include <FS.h>
 
 #define AP_SSID "esp8266AP"
-#define AP_PASS "heslojekreslo"
 #define WEB_PORT 80
 
 struct credentials_t {
