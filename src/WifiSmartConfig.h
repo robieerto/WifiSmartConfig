@@ -14,7 +14,7 @@
 #include <EEPROM.h>
 #include <FS.h>
 
-#define AP_SSID "esp8266AP"
+#define HOSTNAME "esp8266"
 #define WEB_PORT 80
 
 struct credentials_t {
@@ -27,15 +27,17 @@ extern ESP8266WebServer server;
 
 credentials_t readCredentials();
 void writeCredentials(credentials_t credentials);
+void clearEEPROM();
 void startWifi(WiFiMode_t wifiMode);
-void startSoftAP();
-void startMDNS(const char *hostname);
+void startSoftAP(const char *ap_ssid);
+void startMDNS();
 void startSPIFFS();
 void startHTTP();
 void startOTA(const char *OTAName, const char *OTAPass);
 
 // Helper functions
 String formatBytes(size_t bytes);
+void handleRoot();
 void handleSave();
 String getContentType(String filename);
 bool handleFileRead(String path);

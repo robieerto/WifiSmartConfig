@@ -4,10 +4,12 @@
 */
 
 #include "WifiSmartConfig.h"
+#include "pages.h"
 
 ESP8266WiFiMulti wifiMulti;
 ESP8266WebServer server(WEB_PORT);
 
+// Read credentials from EEPROM
 credentials_t readCredentials() {
   uint16_t addr = 0;
   credentials_t credentials;
@@ -17,6 +19,7 @@ credentials_t readCredentials() {
   return credentials;
 }
 
+// Write credentials to EEPROM
 void writeCredentials(credentials_t credentials) {
   uint16_t addr = 0;
   EEPROM.begin(512);
@@ -25,6 +28,7 @@ void writeCredentials(credentials_t credentials) {
   EEPROM.end();
 }
 
+// Clear the whole EEPROM
 void clearEEPROM() {
   EEPROM.begin(512);
   for (int i = 0; i < 512; i++) {
@@ -53,7 +57,7 @@ void startWifi(WiFiMode_t wifiMode) {
 }
 
 // Setup soft AP
-void startSoftAP() {
+void startSoftAP(const char *ap_ssid) {
   Serial.print("Setting soft-AP ... ");
   IPAddress apLocalIp(192, 168, 4, 1);
   IPAddress apGatewayIp(192, 168, 4, 1);
@@ -61,9 +65,9 @@ void startSoftAP() {
   WiFi.softAPConfig(apLocalIp, apLocalIp, apSubnetMask);
   credentials_t credentials = readCredentials();
   if (! WiFi.softAP(credentials.name, credentials.pass)) {
-    Serial.print(WiFi.softAP(AP_SSID, "")
+    Serial.print(WiFi.softAP(ap_ssid, "")
       ? "Ready" : "Failed!");
-    Serial.println(" as " + String(AP_SSID));
+    Serial.println(" as " + String(ap_ssid));
   }
   else {
     Serial.println("Ready as " + String(credentials.name));
@@ -71,8 +75,8 @@ void startSoftAP() {
 }
 
 // Start the mDNS responder for specific hostname
-void startMDNS(const char *hostname) {
-  if (MDNS.begin(hostname)) {
+void startMDNS() {
+  if (MDNS.begin(HOSTNAME)) {
     Serial.println("mDNS responder started");
     // Add service to MDNS-SD
     MDNS.addService("http", "tcp", 80);
@@ -99,6 +103,9 @@ void startSPIFFS() {
 // Start HTTP server
 void startHTTP() {
   // Handle HTTP requests
+  server.on("/", HTTP_GET, []() {
+    server.send_P(200, "text/html", MAIN_page);
+  });
   server.on("/save", HTTP_POST, handleSave);
   server.onNotFound([]() {
     if (!handleFileRead(server.uri()))
@@ -148,22 +155,24 @@ String formatBytes(size_t bytes) {
 // Handle request for saving credentials
 void handleSave() {
   if (!server.hasArg("name") || !server.hasArg("password") 
-      || server.arg("name") == NULL || server.arg("password") == NULL) {
-    handleFileRead("/incorrect.html");
+      || server.arg("name") == NULL || server.arg("password") == NULL
+      || server.arg("password").length() < 8) {
+    server.send_P(200, "text/html", INCORRECT_page);
     return;
   }
   credentials_t credentials;
   strcpy(credentials.name, server.arg("name").c_str());
   strcpy(credentials.pass, server.arg("password").c_str());
   writeCredentials(credentials);
-  handleFileRead("/success.html");
+  server.send_P(200, "text/html", SUCCESS_page);
   delay(3000);
   ESP.restart();
 }
 
 // Convert the file extension to the MIME type
 String getContentType(String filename) {
-  if (filename.endsWith(".html")) return "text/html";
+  if (server.hasArg("download")) return "application/octet-stream";
+  else if (filename.endsWith(".htm")) return "text/html";
   else if(filename.endsWith(".html")) return "text/html";
   else if(filename.endsWith(".css")) return "text/css";
   else if(filename.endsWith(".js")) return "application/javascript";
