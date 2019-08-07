@@ -36,8 +36,8 @@ const char SUCCESS_page[] PROGMEM = R"=====(
     <title>Configure Wifi</title>
   </head>
   <body>
-    <h2>New Wifi name and password are saved succesfully</h2>
-    <h2>Device is restarting now with new settings</h2>
+    <h1>New Wifi name and password are saved succesfully</h1>
+    <h3>Device is restarting now with new settings</h3>
   </body>
 </html>
 )=====";
@@ -51,9 +51,24 @@ const char INCORRECT_page[] PROGMEM = R"=====(
     <title>Configure Wifi</title>
   </head>
   <body>
-    <h2>Please, specify Wifi name and password</h2>
-    <h3>Password length must be at least 8 characters</h3>
+    <h1>Please, specify Wifi name and password</h1>
+    <p>Password length must be at least 8 characters</p>
     <button onclick="javascript:history.back()">Go Back</button>
+  </body>
+</html>
+)=====";
+
+const char NOTFOUND_page[] PROGMEM = R"=====(
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Not found</title>
+  </head>
+  <body>
+    <h1>404: Not found</h1>
+    <p>The requested page was not found on this server</p>
   </body>
 </html>
 )=====";

@@ -9,11 +9,15 @@
 ESP8266WiFiMulti wifiMulti;
 ESP8266WebServer server(WEB_PORT);
 
+// EEPROM starting address
+const uint16_t addr = 0;
+// Buffer for recieved data
+String data_buffer = "";
+
 // Read credentials from EEPROM
 credentials_t readCredentials() {
-  uint16_t addr = 0;
   credentials_t credentials;
-  EEPROM.begin(512);
+  EEPROM.begin(EEPROM_SIZE);
   EEPROM.get(addr, credentials);
   EEPROM.end();
   return credentials;
@@ -21,8 +25,7 @@ credentials_t readCredentials() {
 
 // Write credentials to EEPROM
 void writeCredentials(credentials_t credentials) {
-  uint16_t addr = 0;
-  EEPROM.begin(512);
+  EEPROM.begin(EEPROM_SIZE);
   EEPROM.put(addr, credentials);
   EEPROM.commit();
   EEPROM.end();
@@ -30,8 +33,8 @@ void writeCredentials(credentials_t credentials) {
 
 // Clear the whole EEPROM
 void clearEEPROM() {
-  EEPROM.begin(512);
-  for (int i = 0; i < 512; i++) {
+  EEPROM.begin(EEPROM_SIZE);
+  for (int i = 0; i < EEPROM_SIZE; i++) {
     EEPROM.write(i, 0);
   }
   EEPROM.end();
@@ -57,15 +60,14 @@ void startWifi(WiFiMode_t wifiMode) {
 }
 
 // Setup soft AP
-void startSoftAP(const char *ap_ssid) {
+void startSoftAP(const char *ap_ssid, const char *ap_pass) {
   Serial.print("Setting soft-AP ... ");
-  IPAddress apLocalIp(192, 168, 4, 1);
-  IPAddress apGatewayIp(192, 168, 4, 1);
+  IPAddress apLocalIp(192, 168, 1, 10);
   IPAddress apSubnetMask(255, 255, 255, 0);
   WiFi.softAPConfig(apLocalIp, apLocalIp, apSubnetMask);
   credentials_t credentials = readCredentials();
   if (! WiFi.softAP(credentials.name, credentials.pass)) {
-    Serial.print(WiFi.softAP(ap_ssid, "")
+    Serial.print(WiFi.softAP(ap_ssid, ap_pass)
       ? "Ready" : "Failed!");
     Serial.println(" as " + String(ap_ssid));
   }
@@ -108,12 +110,36 @@ void startHTTP() {
   });
   server.on("/save", HTTP_POST, handleSave);
   server.onNotFound([]() {
-    if (!handleFileRead(server.uri()))
-      server.send(404, "text/plain", "404: Not Found");
+    String uri = server.uri();
+    if (uri.indexOf('*') == -1) {
+      if (!handleFileRead(uri))
+        server.send_P(404, "text/html", NOTFOUND_page);
+    }
+    else { // data from client application
+      uri.remove(0, 1);
+      data_buffer = uri;
+    }
   });
 
   server.begin();
   Serial.println("HTTP server started");
+}
+
+// Handle incoming request from client
+String handleClient() {
+  server.handleClient();
+  if (data_buffer.length() > 0) {
+    String saved_data = data_buffer;
+    data_buffer = "";
+    return saved_data;
+  }
+  return "";
+}
+
+// Send data to client via WebView MIT app hack
+void sendDataToWebView(String data) {
+  String webViewHack = "<script>window.AppInventor.setWebViewString('"+data+"')</script>";
+  server.send(200, "text/html", webViewHack);
 }
 
 // Start over-the-air update service
@@ -189,7 +215,6 @@ String getContentType(String filename) {
 
 // Send the right file to the client (if it exists)
 bool handleFileRead(String path) {
-  path = "/web" + path;
   Serial.println("handleFileRead: " + path);
   if(path.endsWith("/")) path += "index.html";           // If a folder is requested, send the index file
   String contentType = getContentType(path);             // Get the MIME type
