@@ -31,6 +31,15 @@ void writeCredentials(credentials_t credentials) {
   EEPROM.end();
 }
 
+// Clear credentials to EEPROM
+void clearCredentials() {
+  credentials_t credentials = { 0 };
+  EEPROM.begin(EEPROM_SIZE);
+  EEPROM.put(addr, credentials);
+  EEPROM.commit();
+  EEPROM.end();
+}
+
 // Clear the whole EEPROM
 void clearEEPROM() {
   EEPROM.begin(EEPROM_SIZE);
@@ -60,19 +69,23 @@ void startWifi(WiFiMode_t wifiMode) {
 }
 
 // Setup soft AP
-void startSoftAP(const char *ap_ssid, const char *ap_pass) {
+void startSoftAP(const char *ap_ssid, const char *ap_pass, ipAddresses_t ip_addresses) {
   Serial.print("Setting soft-AP ... ");
-  IPAddress apLocalIp(192, 168, 1, 10);
-  IPAddress apSubnetMask(255, 255, 255, 0);
-  WiFi.softAPConfig(apLocalIp, apLocalIp, apSubnetMask);
+  WiFi.softAPConfig(ip_addresses.apLocalIp, ip_addresses.apGateway, ip_addresses.apSubnetMask);
   credentials_t credentials = readCredentials();
-  if (! WiFi.softAP(credentials.name, credentials.pass)) {
-    Serial.print(WiFi.softAP(ap_ssid, ap_pass)
-      ? "Ready" : "Failed!");
-    Serial.println(" as " + String(ap_ssid));
+  if (! strcmp(credentials.flag, "some")) {
+    if (WiFi.softAP(credentials.name, credentials.pass)) {
+      Serial.print("Ready as " + String(credentials.name));
+      Serial.println(" with pass " + String(credentials.pass));
+      return;
+    }
+  }
+  if (WiFi.softAP(ap_ssid, ap_pass)) {
+    Serial.print("Ready as " + String(ap_ssid));
+    Serial.println(" with pass " + String(ap_pass));
   }
   else {
-    Serial.println("Ready as " + String(credentials.name));
+    Serial.print("AP Failed!");
   }
 }
 
@@ -189,6 +202,7 @@ void handleSave() {
   credentials_t credentials;
   strcpy(credentials.name, server.arg("name").c_str());
   strcpy(credentials.pass, server.arg("password").c_str());
+  strcpy(credentials.flag, "some");
   writeCredentials(credentials);
   server.send_P(200, "text/html", SUCCESS_page);
   delay(3000);

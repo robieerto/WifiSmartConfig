@@ -21,16 +21,25 @@
 struct credentials_t {
   char name[32];
   char pass[32];
+  char flag[5];
 };
+
+struct ipAddresses_t {
+  IPAddress apLocalIp;
+  IPAddress apGateway;
+  IPAddress apSubnetMask;
+};
+
 
 extern ESP8266WiFiMulti wifiMulti;
 extern ESP8266WebServer server;
 
 credentials_t readCredentials();
 void writeCredentials(credentials_t credentials);
+void clearCredentials();
 void clearEEPROM();
 void startWifi(WiFiMode_t wifiMode);
-void startSoftAP(const char *ap_ssid, const char *ap_pass);
+void startSoftAP(const char *ap_ssid, const char *ap_pass, ipAddresses_t ip_addresses);
 void startMDNS();
 void startSPIFFS();
 void startHTTP();
