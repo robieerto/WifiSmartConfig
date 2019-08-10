@@ -6,17 +6,37 @@
 #ifndef WIFI_SMART_CONFIG_H
 #define WIFI_SMART_CONFIG_H
 
+#if defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h> 
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+
+#define HOSTNAME "esp8266"
+#define EEPROM_SIZE 512
+
+extern ESP8266WiFiMulti wifiMulti;
+extern ESP8266WebServer server;
+
+#elif defined(ESP32)
+#include <WiFi.h>
+#include <WiFiMulti.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#include <SPIFFS.h>
+
+#define HOSTNAME "esp32"
+#define EEPROM_SIZE 1000
+
+extern WiFiMulti wifiMulti;
+extern WebServer server;
+#endif
+
 #include <ArduinoOTA.h>
 #include <EEPROM.h>
 #include <FS.h>
 
-#define HOSTNAME "esp8266"
 #define WEB_PORT 80
-#define EEPROM_SIZE 512
 
 struct credentials_t {
   char name[32];
@@ -29,10 +49,6 @@ struct ipAddresses_t {
   IPAddress apGateway;
   IPAddress apSubnetMask;
 };
-
-
-extern ESP8266WiFiMulti wifiMulti;
-extern ESP8266WebServer server;
 
 credentials_t readCredentials();
 void writeCredentials(credentials_t credentials);

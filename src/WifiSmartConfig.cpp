@@ -6,8 +6,13 @@
 #include "WifiSmartConfig.h"
 #include "pages.h"
 
+#if defined(ESP8266)
 ESP8266WiFiMulti wifiMulti;
 ESP8266WebServer server(WEB_PORT);
+#elif defined(ESP32)
+WiFiMulti wifiMulti;
+WebServer server(WEB_PORT);
+#endif
 
 // EEPROM starting address
 const uint16_t addr = 0;
@@ -105,12 +110,22 @@ void startSPIFFS() {
   SPIFFS.begin();                             
   Serial.println("SPIFFS started. Contents:");
   {
+    #if defined(ESP8266)
     Dir dir = SPIFFS.openDir("/");
     while (dir.next()) {
       String fileName = dir.fileName();
       size_t fileSize = dir.fileSize();
       Serial.printf("\tFS File: %s, size: %s\r\n", fileName.c_str(), formatBytes(fileSize).c_str());
     }
+    #elif defined(ESP32)
+    File root = SPIFFS.open("/");
+    File file;
+    while (file = root.openNextFile()) {
+      String fileName = file.name();
+      size_t fileSize = file.size();
+      Serial.printf("\tFS File: %s, size: %s\r\n", fileName.c_str(), formatBytes(fileSize).c_str());
+    }
+    #endif
     Serial.printf("\n");
   }
 }
@@ -140,6 +155,9 @@ void startHTTP() {
 
 // Handle incoming request from client
 String handleClient() {
+  #if defined(ESP8266)
+  MDNS.update();
+  #endif
   server.handleClient();
   if (data_buffer.length() > 0) {
     String saved_data = data_buffer;

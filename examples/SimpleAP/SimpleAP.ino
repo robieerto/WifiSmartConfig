@@ -1,6 +1,6 @@
 #include <WifiSmartConfig.h>
 
-#define AP_SSID "esp8266AP"
+#define AP_SSID "espAP"
 #define AP_PASS "hesielko"
 
 ipAddresses_t ipAddresses = {
