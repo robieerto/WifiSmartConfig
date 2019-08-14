@@ -75,8 +75,9 @@ void startWifi(WiFiMode_t wifiMode) {
 
 // Setup soft AP
 void startSoftAP(const char *ap_ssid, const char *ap_pass, ipAddresses_t ip_addresses) {
-  Serial.print("Setting soft-AP ... ");
+  Serial.println("Setting soft-AP ... ");
   WiFi.softAPConfig(ip_addresses.apLocalIp, ip_addresses.apGateway, ip_addresses.apSubnetMask);
+  Serial.println(ip_addresses.apLocalIp);
   credentials_t credentials = readCredentials();
   if (! strcmp(credentials.flag, "some")) {
     if (WiFi.softAP(credentials.name, credentials.pass)) {
@@ -134,16 +135,19 @@ void startSPIFFS() {
 void startHTTP() {
   // Handle HTTP requests
   server.on("/", HTTP_GET, []() {
+    Serial.println("Root request: /");
     server.send_P(200, "text/html", MAIN_page);
   });
   server.on("/save", HTTP_POST, handleSave);
   server.onNotFound([]() {
     String uri = server.uri();
     if (uri.indexOf('*') == -1) {
+      Serial.println("Request: " + uri);
       if (!handleFileRead(uri))
         server.send_P(404, "text/html", NOTFOUND_page);
     }
     else { // data from client application
+    Serial.println("Request from app: " + uri);
       uri.remove(0, 1);
       data_buffer = uri;
     }
@@ -251,15 +255,16 @@ bool handleFileRead(String path) {
   if(path.endsWith("/")) path += "index.html";           // If a folder is requested, send the index file
   String contentType = getContentType(path);             // Get the MIME type
   String pathWithGz = path + ".gz";
-  if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){  // If the file exists, either as a compressed archive, or normal
+  if(SPIFFS.open(path, "r") &&
+    (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path))){  // If the file exists, either as a compressed archive, or normal
     if(SPIFFS.exists(pathWithGz))                          // If there's a compressed version available
       path += ".gz";                                       // Use the compressed version
     File file = SPIFFS.open(path, "r");                    // Open the file
-    server.streamFile(file, contentType);    // Send it to the client
+    server.streamFile(file, contentType);                  // Send it to the client
     file.close();                                          // Close the file again
-    Serial.println(String("\tSent file: ") + path);
+    Serial.println(String("Sent file: ") + path);
     return true;
   }
-  Serial.println(String("\tFile Not Found: ") + path);
+  Serial.println(String("File Not Found: ") + path);
   return false;                                          // If the file doesn't exist, return false
 }
