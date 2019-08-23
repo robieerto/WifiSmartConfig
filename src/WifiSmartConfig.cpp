@@ -11,9 +11,7 @@ ESP8266WiFiMulti wifiMulti;
 ESP8266WebServer server(WEB_PORT);
 #elif defined(ESP32)
 WiFiMulti wifiMulti;
-WebServer server(8042);
-
-TaskHandle_t Task1;
+WebServer server(WEB_PORT);
 #endif
 
 // EEPROM starting address
@@ -133,7 +131,8 @@ void startSPIFFS() {
   }
 }
 
-void startHTTPtask(void *params) {
+// Start HTTP server
+void startHTTP() {
   // Handle HTTP requests
   server.on("/", HTTP_GET, []() {
     Serial.println("Root request: /");
@@ -155,32 +154,6 @@ void startHTTPtask(void *params) {
   });
 
   server.begin();
-
-  while (true) {
-    #if defined(ESP8266)
-    MDNS.update();
-    #endif
-    server.handleClient();
-  }
-}
-
-// Start HTTP server
-void startHTTP() {
-  //create a task that will be executed in the Task2code() function, with priority 1 and executed on core 1
-  #if defined(ESP32)
-  xTaskCreatePinnedToCore(
-                    startHTTPtask,   /* Task function. */
-                    "HTTPtask",     /* name of task. */
-                    10000,       /* Stack size of task */
-                    nullptr,        /* parameter of the task */
-                    1,           /* priority of the task */
-                    &Task1,      /* Task handle to keep track of created task */
-                    1);          /* pin task to core 1 */
-  delay(500);
-  #else
-  Serial.println("Compatibility only with ESP32");
-  #endif
-
   Serial.println("HTTP server started");
 }
 
