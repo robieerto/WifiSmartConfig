@@ -1,26 +1,46 @@
 #include <WifiSmartConfig.h>
 
 #define AP_SSID "espAP"
-#define AP_PASS "hesielko"
+#define AP_PASS nullptr
 
 ipAddresses_t ipAddresses = {
-  IPAddress(192, 168, 4, 1), // Local IP
-  IPAddress(192, 168, 4, 0), // Gateway
-  IPAddress(255, 255, 255, 0) // Subnet Mask
+    IPAddress(192, 168, 4, 1),  // Local IP
+    IPAddress(192, 168, 4, 0),  // Gateway
+    IPAddress(255, 255, 255, 0) // Subnet Mask
 };
 
-void setup(void){
+credentials_t savedData;
+bool isDataSaved;
+
+void setup(void)
+{
   Serial.begin(115200);
   delay(10);
   Serial.println('\n');
 
+  startAddrCredentials = 0;
+
   // clearCredentials(); // Clear credentials
-  startWifi(WIFI_AP); // Setup Wifi as hotspot
-  startSoftAP(AP_SSID, AP_PASS, ipAddresses); // Setup soft AP
-  startMDNS(); // Start the mDNS responder for specific hostname
-  startHTTP(); // Start HTTP server
+
+  savedData = readCredentials();
+  isDataSaved = areCredentialsSaved(savedData);
+  if (isDataSaved == false)
+  {
+    startWifi(WIFI_AP);                         // Setup Wifi as hotspot
+    startSoftAP(AP_SSID, AP_PASS, ipAddresses); // Setup soft AP
+    startHTTP();                                // Start HTTP server
+  }
+  else
+  {
+    wifiMulti.addAP(savedData.name, savedData.pass);
+    startWifi(WIFI_STA); // Connect to saved Wifi SSID
+  }
 }
 
-void loop(void){
-  handleClient();
+void loop(void)
+{
+  if (isDataSaved == false)
+  {
+    handleClient();
+  }
 }

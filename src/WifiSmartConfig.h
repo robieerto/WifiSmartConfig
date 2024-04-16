@@ -8,7 +8,7 @@
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h> 
+#include <ESP8266WiFiMulti.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 
@@ -30,6 +30,7 @@ extern ESP8266WebServer server;
 
 extern WiFiMulti wifiMulti;
 extern WebServer server;
+extern uint16_t startAddrCredentials;
 #endif
 
 #include <ArduinoOTA.h>
@@ -38,19 +39,22 @@ extern WebServer server;
 
 #define WEB_PORT 80
 
-struct credentials_t {
+struct credentials_t
+{
   char name[32];
   char pass[32];
   char flag[5];
 };
 
-struct ipAddresses_t {
+struct ipAddresses_t
+{
   IPAddress apLocalIp;
   IPAddress apGateway;
   IPAddress apSubnetMask;
 };
 
 credentials_t readCredentials();
+bool areCredentialsSaved(credentials_t credentials);
 void writeCredentials(credentials_t credentials);
 void clearCredentials();
 void clearEEPROM();
